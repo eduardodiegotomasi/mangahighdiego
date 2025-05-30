@@ -1,0 +1,86 @@
+import matplotlib.pyplot as plt
+import ipywidgets as widgets
+import pandas as pd
+from IPython.display import display
+
+# Carrega tabela do CSV
+tabela_df = pd.read_csv('tabela_precos.csv')
+tabela_df.columns = tabela_df.columns.str.strip()  # Remove espaços
+
+# Função para buscar e exibir dados
+def atualizar(linha, num_espetos, galerias, estado):
+    filtro = (
+        (tabela_df['linha'] == linha) &
+        (tabela_df['num_espetos'] == num_espetos) &
+        (tabela_df['Galerias'] == galerias)
+    )
+
+    dados = tabela_df[filtro]
+
+    if not dados.empty:
+        dados = dados.iloc[0]
+        comprimento = dados['comprimento']
+
+        if estado == 'RS':
+            preco = dados['preco RS']
+        elif estado == 'SC':
+            preco = dados['preco SC']
+        else:
+            preco = dados['preco O']
+
+        plt.figure(figsize=(comprimento / 2, 2))
+        plt.barh([0], [comprimento], color='orange')
+        plt.title(f'Linha: {linha}\nEspetos: {num_espetos} | Galerias: {galerias}\nComprimento: {comprimento} m | Preço ({estado}): R$ {preco}')
+        plt.xlabel('m')
+        plt.xlim(0, comprimento)
+        plt.yticks([])
+
+        plt.text(comprimento, 0, f'{comprimento} m', va='center', ha='center', color='black', fontsize=12)
+
+        filename = f"grafico_{linha}_{num_espetos}_espetos_{galerias}_galerias_{estado}.pdf"
+        plt.savefig(filename)
+        print(f"{num_espetos} espetos, {galerias} galerias, linha {linha}, R$ {preco}")
+
+        plt.show()
+    else:
+        print(f"❌ Modelo não encontrado para linha '{linha}' com {num_espetos} espetos e {galerias} galerias.\nVerifique a tabela.")
+
+# Widgets
+linha_dropdown = widgets.Dropdown(
+    options=tabela_df['linha'].unique(),
+    value=tabela_df['linha'].unique()[0],
+    description='Linha:'
+)
+
+num_espetos_input = widgets.BoundedIntText(
+    value=1,
+    min=int(tabela_df['num_espetos'].min()),
+    max=int(tabela_df['num_espetos'].max()),
+    step=1,
+    description='Espetos:',
+    style={'description_width': 'initial'}
+)
+
+galerias_slider = widgets.IntSlider(
+    value=1,
+    min=int(tabela_df['Galerias'].min()),
+    max=int(tabela_df['Galerias'].max()),
+    step=1,
+    description='Galerias:'
+)
+
+estado_dropdown = widgets.Dropdown(
+    options=['RS', 'SC', 'Outros'],
+    value='RS',
+    description='Estado:'
+)
+
+interactive_plot = widgets.interactive(
+    atualizar,
+    linha=linha_dropdown,
+    num_espetos=num_espetos_input,
+    galerias=galerias_slider,
+    estado=estado_dropdown
+)
+
+display(interactive_plot)
